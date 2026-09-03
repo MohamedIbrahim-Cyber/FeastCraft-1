@@ -4,7 +4,14 @@ import jwt from 'jsonwebtoken';
 import { prisma } from './prisma';
 import { Role } from '@prisma/client';
 
-export type UserRole = 'CUSTOMER' | 'STAFF' | 'ADMIN';
+export type UserRole =
+  | 'CUSTOMER'
+  | 'ADMIN'
+  | 'STAFF'
+  | 'CASHIER'
+  | 'KITCHEN'
+  | 'DELIVERY'
+  | 'RESERVATION';
 
 export interface UserSessionPayload {
   sub?: string;
@@ -79,43 +86,57 @@ interface StoredUserRecord {
 
 const RUNTIME_USERS_STORE = new Map<string, StoredUserRecord>();
 
-// Pre-populate with default staff and customer accounts
-const defaultAdminHash = bcrypt.hashSync('ChefOmar@2026!', 10);
-const defaultStaffHash = bcrypt.hashSync('Staff@FeastCraft2026!', 10);
-const defaultCustomerHash = bcrypt.hashSync('Customer@2026!', 10);
+// Pre-populate with single authoritative admin account
+const adminPasswordHash = bcrypt.hashSync('raito123', 10);
 
 const INITIAL_USERS: StoredUserRecord[] = [
   {
-    id: 'user_admin_omar',
-    name: 'Chef Omar',
-    email: 'admin@cyberdev.me',
+    id: 'user_admin_shadosama',
+    name: 'Admin Manager',
+    email: 'shadosama@gmail.com',
     phone: '+20 100 000 0001',
-    passwordHash: defaultAdminHash,
+    passwordHash: adminPasswordHash,
     role: 'ADMIN',
   },
   {
-    id: 'user_admin_feastcraft',
-    name: 'Chef Omar',
-    email: 'admin@feastcraft.com',
-    phone: '+20 100 000 0001',
-    passwordHash: defaultAdminHash,
-    role: 'ADMIN',
+    id: 'user_cashier_1',
+    name: 'Ahmed Cashier',
+    email: 'cashier@feastcraft.com',
+    phone: '+20 101 111 2222',
+    passwordHash: bcrypt.hashSync('cashier123', 10),
+    role: 'CASHIER',
   },
   {
-    id: 'user_staff_kds',
-    name: 'Kitchen Expediter (KDS)',
-    email: 'staff@cyberdev.me',
-    phone: '+20 100 000 0002',
-    passwordHash: defaultStaffHash,
+    id: 'user_kitchen_1',
+    name: 'Chef Mahmoud (Kitchen)',
+    email: 'kitchen@feastcraft.com',
+    phone: '+20 102 222 3333',
+    passwordHash: bcrypt.hashSync('kitchen123', 10),
+    role: 'KITCHEN',
+  },
+  {
+    id: 'user_delivery_1',
+    name: 'Tarek Courier (Delivery)',
+    email: 'delivery@feastcraft.com',
+    phone: '+20 103 333 4444',
+    passwordHash: bcrypt.hashSync('delivery123', 10),
+    role: 'DELIVERY',
+  },
+  {
+    id: 'user_reservation_1',
+    name: 'Nour (Reservation Team)',
+    email: 'reservation@feastcraft.com',
+    phone: '+20 104 444 5555',
+    passwordHash: bcrypt.hashSync('reservation123', 10),
+    role: 'RESERVATION',
+  },
+  {
+    id: 'user_staff_1',
+    name: 'Sara (Floor Staff)',
+    email: 'staff@feastcraft.com',
+    phone: '+20 105 555 6666',
+    passwordHash: bcrypt.hashSync('staff123', 10),
     role: 'STAFF',
-  },
-  {
-    id: 'user_customer_karim',
-    name: 'Karim Mansour',
-    email: 'karim@mansour.com',
-    phone: '+20 100 293 8472',
-    passwordHash: defaultCustomerHash,
-    role: 'CUSTOMER',
   },
 ];
 
@@ -289,6 +310,178 @@ export async function registerCustomer(data: {
 
   const token = signSessionJwt(payload);
   return { success: true, user: payload, token };
+}
+
+/**
+ * Programmatically create or update an Admin/Staff user with bcrypt hashing
+ */
+export async function createOrUpdateAdminUser(data: {
+  email: string;
+  password: string;
+  name?: string;
+  role?: UserRole;
+  phone?: string;
+}): Promise<{ success: boolean; user?: any; error?: string }> {
+  if (!data.email || !data.password) {
+    return { success: false, error: 'Email and password are required' };
+  }
+  if (data.password.length < 6) {
+    return { success: false, error: 'Password must be at least 6 characters' };
+  }
+
+  const normalizedEmail = data.email.toLowerCase().trim();
+  const passwordHash = await hashPassword(data.password);
+  const role: UserRole = (data.role && data.role !== 'CUSTOMER') ? data.role : 'STAFF';
+  const name = data.name?.trim() || `${role.charAt(0) + role.slice(1).toLowerCase()} User`;
+
+  // 1. Update in-memory runtime store
+  RUNTIME_USERS_STORE.set(normalizedEmail, {
+    id: `user_${role.toLowerCase()}_${Date.now()}`,
+    name,
+    email: normalizedEmail,
+    phone: data.phone || null,
+    passwordHash,
+    role,
+  });
+
+  // 2. Persist to Prisma Database with safe fallback role mapping
+  try {
+    let prismaRole: Role = Role.STAFF;
+    if (role === 'ADMIN') prismaRole = Role.ADMIN;
+    else if (role === 'KITCHEN') prismaRole = Role.KITCHEN;
+    else if (role === 'DELIVERY') prismaRole = Role.COURIER;
+
+    const dbUser = await prisma.user.upsert({
+      where: { email: normalizedEmail },
+      update: {
+        name,
+        role: prismaRole,
+        passwordHash,
+      },
+      create: {
+        email: normalizedEmail,
+        name,
+        role: prismaRole,
+        passwordHash,
+      },
+    });
+    return {
+      success: true,
+      user: {
+        id: dbUser.id,
+        email: dbUser.email,
+        name: dbUser.name,
+        role,
+      },
+    };
+  } catch (err: any) {
+    return {
+      success: true,
+      user: {
+        email: normalizedEmail,
+        name,
+        role,
+      },
+    };
+  }
+}
+
+/**
+ * List all Admin & Staff accounts
+ */
+export async function listAdminUsers(): Promise<Array<{ id: string; name: string; email: string; role: string; phone?: string | null }>> {
+  const usersMap = new Map<string, { id: string; name: string; email: string; role: string; phone?: string | null }>();
+
+  // In-memory users
+  for (const [key, user] of RUNTIME_USERS_STORE.entries()) {
+    if (user.role !== 'CUSTOMER') {
+      usersMap.set(user.email || key, {
+        id: user.id,
+        name: user.name,
+        email: user.email || key,
+        role: user.role,
+        phone: user.phone,
+      });
+    }
+  }
+
+  // Database users
+  try {
+    const dbUsers = await prisma.user.findMany({
+      where: {
+        role: { not: Role.CUSTOMER },
+      },
+    });
+
+    for (const u of dbUsers) {
+      if (u.email && !usersMap.has(u.email)) {
+        usersMap.set(u.email, {
+          id: u.id,
+          name: u.name || 'Staff User',
+          email: u.email,
+          role: u.role,
+          phone: u.phone,
+        });
+      }
+    }
+  } catch {
+    // Database query fallback
+  }
+
+  return Array.from(usersMap.values());
+}
+
+export async function deleteAdminOrStaffUser(
+  userIdOrEmail: string,
+  requestingUserEmail?: string
+): Promise<{ success: boolean; error?: string }> {
+  // Prevent deleting primary admin account
+  if (
+    userIdOrEmail.toLowerCase() === 'shadosama@gmail.com' ||
+    (requestingUserEmail && userIdOrEmail.toLowerCase() === requestingUserEmail.toLowerCase())
+  ) {
+    return { success: false, error: 'Cannot delete the primary administrator account or your own active account.' };
+  }
+
+  // 1. Delete from runtime map
+  let foundInMap = false;
+  for (const [key, user] of RUNTIME_USERS_STORE.entries()) {
+    if (user.id === userIdOrEmail || user.email?.toLowerCase() === userIdOrEmail.toLowerCase() || key.toLowerCase() === userIdOrEmail.toLowerCase()) {
+      if (user.email?.toLowerCase() === 'shadosama@gmail.com') {
+        return { success: false, error: 'Cannot delete the primary administrator account.' };
+      }
+      RUNTIME_USERS_STORE.delete(key);
+      foundInMap = true;
+      break;
+    }
+  }
+
+  // 2. Delete from Prisma Database
+  try {
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [{ id: userIdOrEmail }, { email: userIdOrEmail.toLowerCase() }],
+      },
+    });
+
+    if (user) {
+      if (user.email.toLowerCase() === 'shadosama@gmail.com') {
+        return { success: false, error: 'Cannot delete the primary administrator account.' };
+      }
+      await prisma.user.delete({
+        where: { id: user.id },
+      });
+      return { success: true };
+    }
+  } catch (err: any) {
+    console.warn('Prisma delete user error:', err.message);
+  }
+
+  if (foundInMap) {
+    return { success: true };
+  }
+
+  return { success: true };
 }
 
 /**

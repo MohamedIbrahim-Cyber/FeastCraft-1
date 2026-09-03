@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { verifySessionJwt, UserSessionPayload } from './auth';
+import { verifySessionJwt, UserSessionPayload, UserRole } from './auth';
 import { rateLimit, getClientIp, RATE_LIMITS, recordSecurityAudit } from './rateLimiter';
 
 // Extend Express Request type to include user session
@@ -14,9 +14,9 @@ declare global {
 /**
  * 1. Role Enforcement Middleware
  * Protects routes by validating JWT from Authorization header or session cookies.
- * Enforces active ADMIN / STAFF claims.
+ * Enforces active role claims.
  */
-export function enforceRole(allowedRoles: ('ADMIN' | 'STAFF' | 'CUSTOMER')[] = ['ADMIN', 'STAFF']) {
+export function enforceRole(allowedRoles: UserRole[] = ['ADMIN', 'STAFF']) {
   return (req: Request, res: Response, next: NextFunction) => {
     // 1. Extract Token from Authorization Bearer or Session Cookie
     const authHeader = req.headers.authorization;

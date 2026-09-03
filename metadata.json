@@ -2,5 +2,7 @@
   "name": "FeastCraft Luxury Catering & Design System",
   "description": "Fast-casual artisanal pizza & burger ordering platform with live delivery tracking, kitchen display system (KDS), and RTL/LTR design system.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

@@ -24,9 +24,9 @@ export default function AuthModal({
 }: AuthModalProps) {
   const [mode, setMode] = useState<'signin' | 'register'>(initialMode);
   const [name, setName] = useState('');
-  const [emailOrPhone, setEmailOrPhone] = useState('karim@mansour.com');
-  const [phone, setPhone] = useState('+20 100 293 8472');
-  const [password, setPassword] = useState('Customer@2026!');
+  const [emailOrPhone, setEmailOrPhone] = useState('');
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -211,7 +211,7 @@ export default function AuthModal({
                   required
                   value={emailOrPhone}
                   onChange={(e) => setEmailOrPhone(e.target.value)}
-                  placeholder="karim@mansour.com"
+                  placeholder={isArabic ? 'name@example.com أو 010...' : 'name@example.com or mobile'}
                   className="w-full pl-9 pr-3 py-2.5 bg-white dark:bg-[#1C1816] border border-[#4A352A]/20 dark:border-[#4A352A] rounded-xl text-sm focus:ring-2 focus:ring-[#A13D2D] focus:outline-none"
                 />
               </div>
@@ -230,7 +230,7 @@ export default function AuthModal({
                     type="tel"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    placeholder="+20 100 293 8472"
+                    placeholder="+20 100 000 0000"
                     className="w-full pl-9 pr-3 py-2.5 bg-white dark:bg-[#1C1816] border border-[#4A352A]/20 dark:border-[#4A352A] rounded-xl text-sm focus:ring-2 focus:ring-[#A13D2D] focus:outline-none"
                   />
                 </div>

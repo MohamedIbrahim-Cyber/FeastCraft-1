@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Volume2,
   VolumeX,
@@ -14,8 +14,15 @@ import {
   RefreshCw,
   Printer,
   ChevronRight,
+  Sun,
+  ShieldAlert,
 } from 'lucide-react';
 import { Order, OrderStatus, FulfillmentType } from '../../types';
+import {
+  enableKitchenKeepAwake,
+  disableKitchenKeepAwake,
+  playKitchenChimeAudio,
+} from '../../lib/nativeBridge';
 
 interface AdminKDSViewProps {
   orders: Order[];
@@ -33,25 +40,36 @@ export const AdminKDSView: React.FC<AdminKDSViewProps> = ({
   const [audioChimeEnabled, setAudioChimeEnabled] = useState(true);
   const [fulfillmentFilter, setFulfillmentFilter] = useState<'ALL' | 'DELIVERY' | 'PICKUP'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isKeepAwakeActive, setIsKeepAwakeActive] = useState(true);
+  const prevOrdersCountRef = useRef(orders.length);
 
-  // Play audio beep when audioChimeEnabled
+  // 1. Kitchen Screen Keep-Awake:
+  // Prevents kitchen Android tablets from locking or turning screen off during active service
+  useEffect(() => {
+    if (isKeepAwakeActive) {
+      enableKitchenKeepAwake();
+    } else {
+      disableKitchenKeepAwake();
+    }
+    return () => {
+      disableKitchenKeepAwake();
+    };
+  }, [isKeepAwakeActive]);
+
+  // 2. Play audio chime alert when new orders arrive
+  useEffect(() => {
+    if (orders.length > prevOrdersCountRef.current) {
+      if (audioChimeEnabled) {
+        playKitchenChimeAudio();
+      }
+    }
+    prevOrdersCountRef.current = orders.length;
+  }, [orders.length, audioChimeEnabled]);
+
+  // Play audio chime test
   const playChime = () => {
     if (!audioChimeEnabled) return;
-    try {
-      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(880, audioCtx.currentTime); // A5 note
-      gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start();
-      osc.stop(audioCtx.currentTime + 0.35);
-    } catch {
-      // Benign audio fallback
-    }
+    playKitchenChimeAudio();
   };
 
   // Filter orders
@@ -113,7 +131,7 @@ export const AdminKDSView: React.FC<AdminKDSViewProps> = ({
             }`}
             title="Toggle incoming order audio notification chime"
           >
-            {audioChimeEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+            <Volume2 className="w-4 h-4" />
             <span className="hidden sm:inline">
               {audioChimeEnabled
                 ? isArabic
@@ -122,6 +140,29 @@ export const AdminKDSView: React.FC<AdminKDSViewProps> = ({
                 : isArabic
                 ? 'جرس التنبيه: صامت'
                 : 'Audio Alert: OFF'}
+            </span>
+          </button>
+
+          {/* Kitchen Tablet Screen Keep-Awake Toggle */}
+          <button
+            type="button"
+            onClick={() => setIsKeepAwakeActive(!isKeepAwakeActive)}
+            className={`px-3 py-2 rounded-xl text-xs font-bold border flex items-center gap-1.5 transition-colors ${
+              isKeepAwakeActive
+                ? 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400'
+                : 'bg-black/5 dark:bg-white/5 border-stone-gray/30 text-stone-gray'
+            }`}
+            title="Toggle Android tablet screen keep-awake"
+          >
+            <Sun className={`w-4 h-4 ${isKeepAwakeActive ? 'animate-pulse' : ''}`} />
+            <span className="hidden sm:inline">
+              {isKeepAwakeActive
+                ? isArabic
+                  ? 'إبقاء الشاشة مضاءة'
+                  : 'Screen Keep-Awake: ON'
+                : isArabic
+                ? 'إيقاف إبقاء الشاشة'
+                : 'Screen Keep-Awake: OFF'}
             </span>
           </button>
 

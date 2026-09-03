@@ -33,10 +33,20 @@ import { OrderTrackerScreen } from './components/consumer/OrderTrackerScreen';
 import { AdminKDSView } from './components/admin/AdminKDSView';
 import { AdminMenuCMS } from './components/admin/AdminMenuCMS';
 import { AdminAnalyticsView } from './components/admin/AdminAnalyticsView';
+import { AdminUsersView } from './components/admin/AdminUsersView';
+import { AdminReservationsView } from './components/admin/AdminReservationsView';
+import { AdminDeliveryView } from './components/admin/AdminDeliveryView';
+import { AdminCashierPOSView } from './components/admin/AdminCashierPOSView';
 import AdminLoginPage from './components/admin/AdminLoginPage';
 import AuthModal from './components/consumer/AuthModal';
 import { ScreenDesignSystem } from './components/screens/ScreenDesignSystem';
 import { OrderStatusModal } from './components/consumer/OrderStatusModal';
+import {
+  updateNativeStatusBar,
+  hideNativeSplashScreen,
+  registerHardwareBackButton,
+  setupPushNotifications,
+} from './lib/nativeBridge';
 
 export default function App() {
   const [theme, setTheme] = useState<ThemeMode>('light');
@@ -64,57 +74,24 @@ export default function App() {
   const [fulfillmentType, setFulfillmentType] = useState<FulfillmentType>('DELIVERY');
   const [selectedZone, setSelectedZone] = useState<DeliveryZone | null>(INITIAL_DELIVERY_ZONES[0]);
   const [addressDetails, setAddressDetails] = useState<DeliveryAddressDetails>({
-    street: 'Street 9, Road 254',
-    building: 'Building 14B',
-    floor: 'Floor 3',
-    apartment: 'Apt 302',
-    nearestLandmark: 'Behind Seoudi Supermarket',
-    deliveryNotes: 'Please ring bell and leave on table outside',
+    street: '',
+    building: '',
+    floor: '',
+    apartment: '',
+    nearestLandmark: '',
+    deliveryNotes: '',
   });
 
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo>({
-    name: 'Karim El-Mansoury',
-    phone: '+20 100 293 8472',
-    email: 'karim@elmansoury.com',
+    name: '',
+    phone: '',
+    email: '',
   });
 
   // Cart & Modals State
-  const [cartItems, setCartItems] = useState<CartItem[]>([
-    {
-      id: 'cart-sample-1',
-      menuItemId: 'deal-duo-feast',
-      name: 'Feast Duo Box (2 Pizzas + Wings + Fries)',
-      nameAr: 'بوكس الديو (٢ بيتزا + أجنحة + بطاطس)',
-      imageUrl: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=800&q=80',
-      basePrice: 420,
-      selectedOptions: [
-        {
-          groupId: 'opt-duo-pizza1',
-          groupName: '1st Pizza',
-          groupNameAr: 'البيتزا الأولى',
-          optionId: 'pz-truffle',
-          optionName: 'Truffle Funghi Pizza',
-          optionNameAr: 'بيتزا ترافل فونجي',
-          priceDelta: 0,
-        },
-        {
-          groupId: 'opt-duo-pizza2',
-          groupName: '2nd Pizza',
-          groupNameAr: 'البيتزا الثانية',
-          optionId: 'pz-pepperoni',
-          optionName: 'Pepperoni & Hot Honey',
-          optionNameAr: 'بيبروني وعسل حار',
-          priceDelta: 15,
-        },
-      ],
-      quantity: 1,
-      unitPrice: 435,
-      totalPrice: 435,
-      specialInstructions: 'Extra spicy please!',
-    },
-  ]);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
-  const [appliedCoupon, setAppliedCoupon] = useState<CouponDiscount | null>(INITIAL_COUPONS[0]); // FEAST20
+  const [appliedCoupon, setAppliedCoupon] = useState<CouponDiscount | null>(null);
   const [customizingItem, setCustomizingItem] = useState<MenuItem | null>(null);
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
   const [isZoneModalOpen, setIsZoneModalOpen] = useState(false);
@@ -122,7 +99,7 @@ export default function App() {
   const [isRestaurantOpen, setIsRestaurantOpen] = useState(true);
 
   // Active Live Order (for tracking screen)
-  const [activeOrder, setActiveOrder] = useState<Order | null>(orders[0] || null);
+  const [activeOrder, setActiveOrder] = useState<Order | null>(null);
 
   // In-flight active order indicator (cooking, received, or on the road)
   const inFlightOrder = orders.find(
@@ -137,6 +114,70 @@ export default function App() {
   const isArabic = locale === 'ar';
   const direction: Direction = isArabic ? 'rtl' : 'ltr';
 
+  // Native Mobile Bridge: Status Bar, Splash Screen & Push Notifications
+  useEffect(() => {
+    // 1. Sync Native Status Bar with current theme mode
+    updateNativeStatusBar(isDark);
+  }, [isDark]);
+
+  useEffect(() => {
+    // 2. Dismiss Splash Screen once the app finishes mounting
+    hideNativeSplashScreen();
+
+    // 3. Register device token for Push Notifications
+    setupPushNotifications(
+      (token) => {
+        console.log('[FeastCraft Native] Push Token Registered:', token);
+      },
+      (notification) => {
+        console.log('[FeastCraft Native] Push Notification Received:', notification);
+      }
+    );
+  }, []);
+
+  // 4. Android Hardware Back Button:
+  // Dismiss open modal sheets (Food Customizer, Cart Drawer, Zone Modal, Auth Modal)
+  // before navigating backward or exiting the app.
+  useEffect(() => {
+    const unregister = registerHardwareBackButton(() => {
+      if (customizingItem) {
+        setCustomizingItem(null);
+        return true;
+      }
+      if (isCartDrawerOpen) {
+        setIsCartDrawerOpen(false);
+        return true;
+      }
+      if (isZoneModalOpen) {
+        setIsZoneModalOpen(false);
+        return true;
+      }
+      if (isOrderStatusModalOpen) {
+        setIsOrderStatusModalOpen(false);
+        return true;
+      }
+      if (isAuthModalOpen) {
+        setIsAuthModalOpen(false);
+        return true;
+      }
+      if (currentScreen === 'checkout' || currentScreen === 'order-tracker') {
+        window.history.pushState({}, '', '/');
+        setCurrentScreen('menu-ordering');
+        return true;
+      }
+      return false;
+    });
+
+    return () => unregister();
+  }, [
+    customizingItem,
+    isCartDrawerOpen,
+    isZoneModalOpen,
+    isOrderStatusModalOpen,
+    isAuthModalOpen,
+    currentScreen,
+  ]);
+
   // Handle URL Routing
   useEffect(() => {
     const handleUrlRoute = () => {
@@ -145,12 +186,16 @@ export default function App() {
         setCurrentScreen('order-tracker');
       } else if (path.startsWith('/checkout')) {
         setCurrentScreen('checkout');
-      } else if (path.startsWith('/kds')) {
+      } else if (path.startsWith('/admin/login') || path === '/admin' || path === '/admin/') {
+        setCurrentScreen('admin-login');
+      } else if (path.startsWith('/kds') || path.startsWith('/admin/kds')) {
         setCurrentScreen('admin-kds');
       } else if (path.startsWith('/admin/menu')) {
         setCurrentScreen('admin-menu-cms');
-      } else if (path.startsWith('/admin/stats')) {
+      } else if (path.startsWith('/admin/stats') || path.startsWith('/admin/analytics')) {
         setCurrentScreen('admin-analytics');
+      } else if (path.startsWith('/admin/users') || path.startsWith('/admin/staff')) {
+        setCurrentScreen('admin-users');
       } else if (path.startsWith('/menu') || path === '/') {
         setCurrentScreen('menu-ordering');
       }
@@ -343,7 +388,8 @@ export default function App() {
     if (
       currentScreen === 'admin-kds' ||
       currentScreen === 'admin-menu-cms' ||
-      currentScreen === 'admin-analytics'
+      currentScreen === 'admin-analytics' ||
+      currentScreen === 'admin-users'
     ) {
       setCurrentScreen('admin-login');
     }
@@ -687,6 +733,92 @@ export default function App() {
           />
         );
 
+      case 'admin-users':
+        if (!currentUser || currentUser.role !== 'ADMIN') {
+          return (
+            <AdminLoginPage
+              onSuccess={(user) => {
+                setCurrentUser(user);
+              }}
+              isArabic={arabicActive}
+            />
+          );
+        }
+        return (
+          <div className="p-4 sm:p-8">
+            <AdminUsersView
+              currentUser={currentUser}
+              isArabic={arabicActive}
+              isDark={isDark}
+            />
+          </div>
+        );
+
+      case 'admin-cashier':
+        if (!currentUser || (currentUser.role !== 'ADMIN' && currentUser.role !== 'STAFF' && currentUser.role !== 'CASHIER')) {
+          return (
+            <AdminLoginPage
+              onSuccess={(user) => {
+                setCurrentUser(user);
+              }}
+              isArabic={arabicActive}
+            />
+          );
+        }
+        return (
+          <AdminCashierPOSView
+            orders={orders}
+            menuItems={menuItems}
+            onUpdateOrderStatus={handleUpdateOrderStatus}
+            onAddNewOrder={(newOrder) => {
+              setOrders((prev) => [newOrder, ...prev]);
+            }}
+            isArabic={arabicActive}
+            isDark={isDark}
+            currentUser={currentUser}
+          />
+        );
+
+      case 'admin-delivery':
+        if (!currentUser || (currentUser.role !== 'ADMIN' && currentUser.role !== 'STAFF' && currentUser.role !== 'DELIVERY')) {
+          return (
+            <AdminLoginPage
+              onSuccess={(user) => {
+                setCurrentUser(user);
+              }}
+              isArabic={arabicActive}
+            />
+          );
+        }
+        return (
+          <AdminDeliveryView
+            orders={orders}
+            onUpdateOrderStatus={handleUpdateOrderStatus}
+            isArabic={arabicActive}
+            isDark={isDark}
+            currentUser={currentUser}
+          />
+        );
+
+      case 'admin-reservations':
+        if (!currentUser || (currentUser.role !== 'ADMIN' && currentUser.role !== 'STAFF' && currentUser.role !== 'RESERVATION')) {
+          return (
+            <AdminLoginPage
+              onSuccess={(user) => {
+                setCurrentUser(user);
+              }}
+              isArabic={arabicActive}
+            />
+          );
+        }
+        return (
+          <AdminReservationsView
+            isArabic={arabicActive}
+            isDark={isDark}
+            currentUser={currentUser}
+          />
+        );
+
       case 'design-system':
       default:
         return <ScreenDesignSystem isDark={isDark} isArabic={arabicActive} />;
@@ -761,25 +893,44 @@ export default function App() {
         onOpenOrderStatus={() => setIsOrderStatusModalOpen(true)}
         hasActiveOrder={!!inFlightOrder}
         activeOrderNumber={inFlightOrder?.orderNumber}
+        isOverlay={currentScreen === 'menu-ordering'}
         isAdminView={
           currentScreen === 'admin-kds' ||
           currentScreen === 'admin-menu-cms' ||
           currentScreen === 'admin-analytics' ||
-          currentScreen === 'admin-login'
+          currentScreen === 'admin-users' ||
+          currentScreen === 'admin-cashier' ||
+          currentScreen === 'admin-delivery' ||
+          currentScreen === 'admin-reservations'
         }
-        onToggleAdmin={() => {
-          if (
-            currentScreen === 'admin-kds' ||
-            currentScreen === 'admin-menu-cms' ||
-            currentScreen === 'admin-analytics' ||
-            currentScreen === 'admin-login'
-          ) {
+        currentAdminScreen={currentScreen}
+        onNavigateAdmin={(targetScreen) => {
+          if (targetScreen === 'menu-ordering') {
+            window.history.pushState({}, '', '/');
             setCurrentScreen('menu-ordering');
-          } else {
+          } else if (targetScreen === 'admin-kds') {
+            window.history.pushState({}, '', '/admin/kds');
             setCurrentScreen('admin-kds');
+          } else if (targetScreen === 'admin-menu-cms') {
+            window.history.pushState({}, '', '/admin/menu');
+            setCurrentScreen('admin-menu-cms');
+          } else if (targetScreen === 'admin-users') {
+            window.history.pushState({}, '', '/admin/users');
+            setCurrentScreen('admin-users');
+          } else if (targetScreen === 'admin-analytics') {
+            window.history.pushState({}, '', '/admin/analytics');
+            setCurrentScreen('admin-analytics');
+          } else if (targetScreen === 'admin-cashier') {
+            window.history.pushState({}, '', '/admin/cashier');
+            setCurrentScreen('admin-cashier');
+          } else if (targetScreen === 'admin-delivery') {
+            window.history.pushState({}, '', '/admin/delivery');
+            setCurrentScreen('admin-delivery');
+          } else if (targetScreen === 'admin-reservations') {
+            window.history.pushState({}, '', '/admin/reservations');
+            setCurrentScreen('admin-reservations');
           }
         }}
-        isOverlay={currentScreen === 'menu-ordering'}
       />
 
       {/* Main Content Viewport */}
@@ -789,79 +940,6 @@ export default function App() {
         </main>
       ) : (
         <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-24 pb-8 sm:pb-12">
-          {/* Temporary Admin Mode Banner & Sub-Navigation */}
-          {(currentScreen === 'admin-kds' ||
-            currentScreen === 'admin-menu-cms' ||
-            currentScreen === 'admin-analytics') && (
-            <div
-              className={`mb-4 p-3 rounded-2xl border flex flex-wrap items-center justify-between gap-3 ${
-                isDark
-                  ? 'bg-amber-950/40 border-amber-800/60 text-amber-200'
-                  : 'bg-amber-50 border-amber-300 text-amber-900'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 rounded-md bg-amber-500 text-white font-mono font-bold text-[10px] uppercase">
-                  {isArabic ? 'لوحة المطبخ والعمليات (مؤقت)' : 'Operations Portal (Temp)'}
-                </span>
-                <span className="text-xs font-semibold hidden sm:inline">
-                  {isArabic
-                    ? 'يمكنك التبديل بين شاشة المطبخ وإدارة المنيو والتقارير'
-                    : 'Kitchen Display, Menu CMS & Real-Time Analytics'}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <button
-                  type="button"
-                  onClick={() => setCurrentScreen('admin-kds')}
-                  className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
-                    currentScreen === 'admin-kds'
-                      ? 'bg-amber-500 text-white shadow-xs'
-                      : isDark
-                      ? 'hover:bg-white/10 text-amber-200'
-                      : 'hover:bg-amber-100 text-amber-900'
-                  }`}
-                >
-                  👨‍🍳 {isArabic ? 'شاشة المطبخ KDS' : 'Kitchen KDS'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCurrentScreen('admin-menu-cms')}
-                  className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
-                    currentScreen === 'admin-menu-cms'
-                      ? 'bg-amber-500 text-white shadow-xs'
-                      : isDark
-                      ? 'hover:bg-white/10 text-amber-200'
-                      : 'hover:bg-amber-100 text-amber-900'
-                  }`}
-                >
-                  🍕 {isArabic ? 'إدارة المنيو' : 'Menu CMS'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCurrentScreen('admin-analytics')}
-                  className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
-                    currentScreen === 'admin-analytics'
-                      ? 'bg-amber-500 text-white shadow-xs'
-                      : isDark
-                      ? 'hover:bg-white/10 text-amber-200'
-                      : 'hover:bg-amber-100 text-amber-900'
-                  }`}
-                >
-                  📊 {isArabic ? 'التقارير' : 'Analytics'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCurrentScreen('menu-ordering')}
-                  className="px-3 py-1 rounded-xl text-xs font-bold bg-black/10 dark:bg-white/10 hover:bg-black/20 dark:hover:bg-white/20 transition-all ml-1"
-                >
-                  ← {isArabic ? 'الرجوع للمتجر' : 'Storefront'}
-                </button>
-              </div>
-            </div>
-          )}
-
           <div
             className={`w-full rounded-3xl transition-all shadow-lg border overflow-hidden ${
               isDark
@@ -971,6 +1049,19 @@ export default function App() {
             <span>Greater Cairo Delivery • 15–45m</span>
             <span>•</span>
             <span>Hot & Fresh Guarantee</span>
+            <span>•</span>
+            <a
+              id="footer-admin-link"
+              href="/admin/login"
+              onClick={(e) => {
+                e.preventDefault();
+                window.history.pushState({}, '', '/admin/login');
+                setCurrentScreen('admin-login');
+              }}
+              className="hover:text-lantern-red text-stone-gray/80 hover:underline transition-colors cursor-pointer"
+            >
+              {isArabic ? 'بوابة الإدارة' : 'Staff Portal'}
+            </a>
           </div>
         </div>
       </footer>

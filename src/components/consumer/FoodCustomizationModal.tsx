@@ -180,58 +180,64 @@ export const FoodCustomizationModal: React.FC<FoodCustomizationModalProps> = ({
       id="food-customization-modal"
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/75 backdrop-blur-sm overflow-y-auto animate-fadeIn"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6 bg-black/75 backdrop-blur-sm overflow-y-auto animate-fadeIn"
     >
       <div
-        className={`relative w-full max-w-xl rounded-3xl overflow-hidden shadow-2xl border my-auto transition-all ${
+        className={`relative w-full max-w-xl rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl border transition-all max-h-[92vh] sm:max-h-[90vh] flex flex-col ${
           isDark
             ? 'bg-dark-surface-elevated border-dark-border text-evening-cream'
             : 'bg-white border-[#E5D2C3] text-temple-brown'
         }`}
       >
+        {/* Mobile Pull Handle Indicator */}
+        <div className="sm:hidden absolute top-2 inset-x-0 z-20 flex justify-center pointer-events-none">
+          <div className="w-12 h-1.5 rounded-full bg-white/60 shadow-sm" />
+        </div>
+
         {/* Close Button */}
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 z-10 p-2 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md transition-colors"
+          className="absolute top-3.5 right-3.5 sm:top-4 sm:right-4 z-20 p-2 sm:p-2.5 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md transition-colors cursor-pointer min-w-[44px] min-h-[44px] flex items-center justify-center"
+          aria-label="Close modal"
         >
           <X className="w-5 h-5" />
         </button>
 
         {/* Hero Image */}
-        <div className="relative h-56 sm:h-64 w-full overflow-hidden bg-black/10">
+        <div className="relative h-44 sm:h-64 w-full shrink-0 overflow-hidden bg-black/10">
           <img
             src={item.imageUrl}
             alt={isArabic ? item.nameAr : item.name}
             className="w-full h-full object-cover"
             referrerPolicy="no-referrer"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent" />
 
           {/* Title & Price on Image */}
-          <div className="absolute bottom-4 left-4 right-4 text-white">
+          <div className="absolute bottom-3 left-4 right-4 sm:bottom-4 sm:left-4 sm:right-4 text-white">
             <div className="flex items-center gap-2 mb-1">
               {item.isPopular && (
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-500 text-white">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-500 text-white shadow-xs">
                   {isArabic ? 'الأكثر طلباً' : 'Popular'}
                 </span>
               )}
               {item.isSpicy && (
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-red-600 text-white flex items-center gap-1">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-red-600 text-white flex items-center gap-1 shadow-xs">
                   <Flame className="w-2.5 h-2.5" />
                   {isArabic ? 'حار' : 'Spicy'}
                 </span>
               )}
             </div>
-            <h2 className="text-xl sm:text-2xl font-black">{isArabic ? item.nameAr : item.name}</h2>
-            <p className="text-xs sm:text-sm text-white/80 line-clamp-2 mt-1">
+            <h2 className="text-lg sm:text-2xl font-black">{isArabic ? item.nameAr : item.name}</h2>
+            <p className="text-xs sm:text-sm text-white/80 line-clamp-1 sm:line-clamp-2 mt-0.5">
               {isArabic ? item.descriptionAr : item.description}
             </p>
           </div>
         </div>
 
         {/* Customization Options Body */}
-        <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-6 max-h-[50vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-5 sm:space-y-6 flex-1 overflow-y-auto overscroll-contain">
           {/* Validation Alert */}
           {validationError && (
             <div className="p-3.5 rounded-xl bg-red-500/15 border border-red-500/30 text-red-600 dark:text-red-400 text-xs font-bold flex items-center gap-2">
@@ -367,16 +373,17 @@ export const FoodCustomizationModal: React.FC<FoodCustomizationModalProps> = ({
 
         {/* Footer / CTA Bar */}
         <div
-          className={`p-4 sm:p-5 border-t flex items-center justify-between gap-4 ${
-            isDark ? 'bg-dark-surface/90 border-dark-border' : 'bg-[#FAF4EF] border-[#E8D6C9]'
+          className={`p-4 sm:p-5 pb-6 sm:pb-5 border-t flex items-center justify-between gap-3 sm:gap-4 shrink-0 ${
+            isDark ? 'bg-dark-surface/95 border-dark-border' : 'bg-[#FAF4EF] border-[#E8D6C9]'
           }`}
         >
           {/* Quantity Stepper */}
-          <div className="flex items-center gap-2 rounded-2xl p-1 bg-black/5 dark:bg-white/5 border border-stone-gray/20">
+          <div className="flex items-center gap-1 sm:gap-2 rounded-2xl p-1 bg-black/5 dark:bg-white/5 border border-stone-gray/20 shrink-0">
             <button
               type="button"
               onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-              className="p-1.5 rounded-xl hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+              className="w-10 h-10 sm:w-9 sm:h-9 rounded-xl hover:bg-black/10 dark:hover:bg-white/10 transition-colors flex items-center justify-center cursor-pointer active:scale-95"
+              aria-label="Decrease quantity"
             >
               <Minus className="w-4 h-4 text-stone-gray" />
             </button>
@@ -384,7 +391,8 @@ export const FoodCustomizationModal: React.FC<FoodCustomizationModalProps> = ({
             <button
               type="button"
               onClick={() => setQuantity((q) => q + 1)}
-              className="p-1.5 rounded-xl hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+              className="w-10 h-10 sm:w-9 sm:h-9 rounded-xl hover:bg-black/10 dark:hover:bg-white/10 transition-colors flex items-center justify-center cursor-pointer active:scale-95"
+              aria-label="Increase quantity"
             >
               <Plus className="w-4 h-4 text-stone-gray" />
             </button>
@@ -396,15 +404,15 @@ export const FoodCustomizationModal: React.FC<FoodCustomizationModalProps> = ({
             data-testid="modal-add-to-cart-btn"
             type="button"
             onClick={handleSubmit}
-            className="flex-1 py-3 px-5 rounded-2xl font-black text-sm bg-lantern-red hover:bg-[#8B3426] text-white shadow-lg shadow-lantern-red/25 active:scale-98 transition-all flex items-center justify-between"
+            className="flex-1 py-3.5 sm:py-3 px-4 sm:px-5 rounded-2xl font-black text-xs sm:text-sm bg-lantern-red hover:bg-[#8B3426] text-white shadow-lg shadow-lantern-red/25 active:scale-98 transition-all flex items-center justify-between cursor-pointer min-h-[44px]"
           >
             <div className="flex items-center gap-2">
               <ShoppingBag className="w-4 h-4" />
-              <span>{isArabic ? 'إضافة إلى السلة' : 'Add to Order'}</span>
+              <span>{isArabic ? 'إضافة للطلب' : 'Add to Order'}</span>
             </div>
-            <span className="font-mono text-base">
+            <span className="font-mono text-sm sm:text-base font-black">
               {totalPrice.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}{' '}
-              <span className="text-xs font-normal">{isArabic ? 'ج.م' : 'EGP'}</span>
+              <span className="text-[11px] sm:text-xs font-normal">{isArabic ? 'ج.م' : 'EGP'}</span>
             </span>
           </button>
         </div>

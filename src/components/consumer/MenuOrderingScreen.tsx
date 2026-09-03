@@ -390,7 +390,7 @@ export const MenuOrderingScreen: React.FC<MenuOrderingScreenProps> = ({
 
       {/* Floating Bottom Cart Bar (Mobile & Quick Checkout) */}
       {totalCartCount > 0 && (
-        <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:w-96 z-40 animate-slideUp">
+        <div className="fixed bottom-[max(1rem,calc(env(safe-area-inset-bottom,0px)+0.75rem))] left-4 right-4 sm:left-auto sm:right-6 sm:w-96 z-40 animate-slideUp">
           <button
             type="button"
             onClick={onOpenCartDrawer}

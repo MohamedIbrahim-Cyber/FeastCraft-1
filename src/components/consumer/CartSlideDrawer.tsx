@@ -137,7 +137,7 @@ export const CartSlideDrawer: React.FC<CartSlideDrawerProps> = ({
       >
         {/* Drawer Header */}
         <div
-          className={`p-4 sm:p-5 border-b flex items-center justify-between gap-3 ${
+          className={`p-4 sm:p-5 pt-safe border-b flex items-center justify-between gap-3 ${
             isDark ? 'border-dark-border bg-dark-surface' : 'border-[#E8D4C5] bg-[#FAF3EC]'
           }`}
         >
@@ -473,7 +473,7 @@ export const CartSlideDrawer: React.FC<CartSlideDrawerProps> = ({
         {/* Drawer Footer with Financial Summary */}
         {cartItems.length > 0 && (
           <div
-            className={`p-4 sm:p-5 border-t space-y-3 ${
+            className={`p-4 sm:p-5 pb-safe border-t space-y-3 ${
               isDark ? 'bg-dark-surface border-dark-border' : 'bg-[#FAF3EC] border-[#E8D4C5]'
             }`}
           >

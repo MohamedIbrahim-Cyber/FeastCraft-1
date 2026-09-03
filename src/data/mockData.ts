@@ -1,4 +1,4 @@
-import { Category, MenuItem, DeliveryZone, Order, CouponDiscount } from '../types';
+import { Category, MenuItem, DeliveryZone, Order, CouponDiscount, TableReservation } from '../types';
 
 export const INITIAL_CATEGORIES: Category[] = [
   {
@@ -823,5 +823,64 @@ export const INITIAL_ORDERS: Order[] = [
         totalPrice: 370,
       },
     ],
+  },
+];
+
+export const INITIAL_RESERVATIONS: TableReservation[] = [
+  {
+    id: 'res-101',
+    reservationNumber: '#RES-101',
+    customerName: 'Karim Mansour',
+    customerPhone: '+20 100 234 5678',
+    partySize: 4,
+    reservationDate: '2026-09-03',
+    reservationTime: '20:30',
+    seatingArea: 'INDOOR',
+    status: 'CONFIRMED',
+    specialNotes: 'Window table requested, celebrating family anniversary',
+    assignedStaff: 'Nour (Reservation Team)',
+    createdAt: new Date(Date.now() - 3 * 3600 * 1000).toISOString(),
+  },
+  {
+    id: 'res-102',
+    reservationNumber: '#RES-102',
+    customerName: 'Laila Hassan',
+    customerPhone: '+20 111 888 9999',
+    partySize: 6,
+    reservationDate: '2026-09-03',
+    reservationTime: '21:00',
+    seatingArea: 'RAMADAN_MAJLIS',
+    status: 'SEATED',
+    specialNotes: 'Special gathering, requires baby highchair',
+    assignedStaff: 'Nour (Reservation Team)',
+    createdAt: new Date(Date.now() - 5 * 3600 * 1000).toISOString(),
+  },
+  {
+    id: 'res-103',
+    reservationNumber: '#RES-103',
+    customerName: 'Dr. Omar Farouk',
+    customerPhone: '+20 122 345 6789',
+    partySize: 2,
+    reservationDate: '2026-09-03',
+    reservationTime: '19:45',
+    seatingArea: 'OUTDOOR_PATIO',
+    status: 'CONFIRMED',
+    specialNotes: 'Quiet corner on the patio',
+    assignedStaff: 'Ahmed (Staff)',
+    createdAt: new Date(Date.now() - 1 * 3600 * 1000).toISOString(),
+  },
+  {
+    id: 'res-104',
+    reservationNumber: '#RES-104',
+    customerName: 'Sherif Zaki',
+    customerPhone: '+20 109 555 4321',
+    partySize: 8,
+    reservationDate: '2026-09-04',
+    reservationTime: '21:30',
+    seatingArea: 'VIP_BOOTH',
+    status: 'CONFIRMED',
+    specialNotes: 'Corporate team dinner, pre-ordered artisanal combo sets',
+    assignedStaff: 'Nour (Reservation Team)',
+    createdAt: new Date(Date.now() - 6 * 3600 * 1000).toISOString(),
   },
 ];

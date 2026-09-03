@@ -9,8 +9,9 @@ import {
   INITIAL_DELIVERY_ZONES,
   INITIAL_COUPONS,
   INITIAL_ORDERS,
+  INITIAL_RESERVATIONS,
 } from './src/data/mockData';
-import { Order, OrderStatus, Category, MenuItem, ItemOptionGroup, CartItem } from './src/types';
+import { Order, OrderStatus, Category, MenuItem, ItemOptionGroup, CartItem, TableReservation } from './src/types';
 import {
   createMenuItemSchema,
   updateMenuItemSchema,
@@ -22,17 +23,22 @@ import {
   authenticateCredentials,
   registerCustomer,
   verifySessionJwt,
+  createOrUpdateAdminUser,
+  listAdminUsers,
+  deleteAdminOrStaffUser,
 } from './src/lib/auth';
 
 // In-Memory Fast-Casual Restaurant State (with preloaded mock data)
 export let ordersStore: Order[] = [...INITIAL_ORDERS];
 export let categoriesStore: Category[] = [...INITIAL_CATEGORIES];
 export let menuItemsStore: MenuItem[] = [...INITIAL_MENU_ITEMS];
+export let reservationsStore: TableReservation[] = [...INITIAL_RESERVATIONS];
 
 export function resetStores() {
   ordersStore = [...INITIAL_ORDERS];
   categoriesStore = [...INITIAL_CATEGORIES];
   menuItemsStore = [...INITIAL_MENU_ITEMS];
+  reservationsStore = [...INITIAL_RESERVATIONS];
 }
 
 export function createApp() {
@@ -179,6 +185,119 @@ export function createApp() {
     res.clearCookie('authjs.session-token', { path: '/' });
     res.clearCookie('__Secure-auth.session-token', { path: '/' });
     return res.json({ success: true, message: 'Logged out successfully' });
+  });
+
+  // Admin / Staff Users Management (Admin portal)
+  app.get('/api/admin/users', async (req, res) => {
+    try {
+      const users = await listAdminUsers();
+      res.json({ success: true, users });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || 'Failed to list admin users' });
+    }
+  });
+
+  app.post('/api/admin/users', async (req, res) => {
+    try {
+      const { email, password, name, role } = req.body;
+      if (!email || !password) {
+        return res.status(400).json({ error: 'Email and password are required' });
+      }
+
+      const result = await createOrUpdateAdminUser({ email, password, name, role });
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+
+      res.status(201).json({ success: true, user: result.user });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || 'Failed to create admin user' });
+    }
+  });
+
+  app.delete('/api/admin/users/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const sessionToken = req.cookies?.['authjs.session-token'] || req.cookies?.['__Secure-auth.session-token'];
+      let requesterEmail: string | undefined;
+
+      if (sessionToken) {
+        const decoded = verifySessionJwt(sessionToken);
+        if (decoded) requesterEmail = decoded.email;
+      }
+
+      const result = await deleteAdminOrStaffUser(id, requesterEmail);
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+
+      res.json({ success: true, message: 'User deleted successfully' });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || 'Failed to delete user' });
+    }
+  });
+
+  // Table Reservations Management (Reservation Team & Admin)
+  app.get('/api/admin/reservations', (req, res) => {
+    res.json({ success: true, reservations: reservationsStore });
+  });
+
+  app.post('/api/admin/reservations', (req, res) => {
+    try {
+      const {
+        customerName,
+        customerPhone,
+        partySize,
+        reservationDate,
+        reservationTime,
+        seatingArea,
+        specialNotes,
+        assignedStaff,
+      } = req.body;
+
+      if (!customerName || !customerPhone || !reservationDate || !reservationTime) {
+        return res.status(400).json({ error: 'Customer name, phone, date, and time are required' });
+      }
+
+      const newReservation: TableReservation = {
+        id: `res-${Date.now()}`,
+        reservationNumber: `#RES-${Math.floor(100 + Math.random() * 900)}`,
+        customerName: customerName.trim(),
+        customerPhone: customerPhone.trim(),
+        partySize: Number(partySize) || 2,
+        reservationDate,
+        reservationTime,
+        seatingArea: seatingArea || 'INDOOR',
+        status: 'CONFIRMED',
+        specialNotes: specialNotes?.trim(),
+        assignedStaff: assignedStaff?.trim() || 'Reservation Team',
+        createdAt: new Date().toISOString(),
+      };
+
+      reservationsStore.unshift(newReservation);
+      res.status(201).json({ success: true, reservation: newReservation });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || 'Failed to create reservation' });
+    }
+  });
+
+  app.patch('/api/admin/reservations/:id/status', (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    const reservation = reservationsStore.find((r) => r.id === id);
+    if (!reservation) {
+      return res.status(404).json({ error: 'Reservation not found' });
+    }
+
+    reservation.status = status;
+    res.json({ success: true, reservation });
+  });
+
+  app.delete('/api/admin/reservations/:id', (req, res) => {
+    const { id } = req.params;
+    reservationsStore = reservationsStore.filter((r) => r.id !== id);
+    res.json({ success: true, message: 'Reservation removed successfully' });
   });
 
   // 1. Menu Catalog & Categories (Customer & Admin)

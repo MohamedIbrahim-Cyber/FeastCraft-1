@@ -14,8 +14,8 @@ export default function AdminLoginPage({
   callbackUrl = '/',
   isArabic = false,
 }: AdminLoginPageProps) {
-  const [email, setEmail] = useState('admin@cyberdev.me');
-  const [password, setPassword] = useState('ChefOmar@2026!');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -64,12 +64,6 @@ export default function AdminLoginPage({
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleQuickFill = (demoEmail: string, demoPass: string) => {
-    setEmail(demoEmail);
-    setPassword(demoPass);
-    setErrorMessage(null);
   };
 
   return (
@@ -146,7 +140,7 @@ export default function AdminLoginPage({
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@cyberdev.me"
+                  placeholder="admin@example.com"
                   className="w-full pl-10 pr-3.5 py-2.5 bg-[#1C1816] border border-[#4A352A] rounded-xl text-sm text-[#FAF7F2] placeholder-[#FAF7F2]/30 focus:outline-none focus:ring-2 focus:ring-[#A13D2D] focus:border-transparent transition-all"
                 />
               </div>
@@ -200,31 +194,6 @@ export default function AdminLoginPage({
               )}
             </button>
           </form>
-
-          {/* Quick Credential Fillers for Demo / Local Test */}
-          <div className="mt-6 pt-5 border-t border-[#4A352A]/40">
-            <div className="text-[11px] font-medium text-[#FAF7F2]/50 uppercase tracking-wider mb-2.5">
-              {isArabic ? 'حسابات تجريبية سريعة:' : 'Quick Pre-Seeded Accounts:'}
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickFill('admin@cyberdev.me', 'ChefOmar@2026!')}
-                className="text-left p-2 rounded-lg bg-[#1C1816]/70 hover:bg-[#1C1816] border border-[#4A352A]/50 text-[11px] transition-colors cursor-pointer group"
-              >
-                <div className="font-semibold text-[#FAF7F2] group-hover:text-[#A13D2D]">Chef Omar</div>
-                <div className="text-[#FAF7F2]/40 text-[10px]">Role: ADMIN</div>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickFill('staff@cyberdev.me', 'Staff@FeastCraft2026!')}
-                className="text-left p-2 rounded-lg bg-[#1C1816]/70 hover:bg-[#1C1816] border border-[#4A352A]/50 text-[11px] transition-colors cursor-pointer group"
-              >
-                <div className="font-semibold text-[#FAF7F2] group-hover:text-[#A13D2D]">Kitchen KDS</div>
-                <div className="text-[#FAF7F2]/40 text-[10px]">Role: STAFF</div>
-              </button>
-            </div>
-          </div>
         </div>
 
         {/* Security Notice Footer */}

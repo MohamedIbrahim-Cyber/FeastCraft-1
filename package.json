@@ -13,12 +13,26 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "db:generate": "prisma generate",
-    "db:seed": "prisma db seed"
+    "db:seed": "prisma db seed",
+    "admin:create": "tsx scripts/create-admin.ts",
+    "android:customer:sync": "npx cap sync --config capacitor.customer.config.ts android-customer",
+    "android:customer:open": "npx cap open android --config capacitor.customer.config.ts",
+    "android:admin:sync": "npx cap sync --config capacitor.admin.config.ts android-admin",
+    "android:admin:open": "npx cap open android --config capacitor.admin.config.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@capacitor-community/keep-awake": "^8.0.1",
+    "@capacitor/android": "^8.5.1",
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/cli": "^8.5.1",
+    "@capacitor/core": "^8.5.1",
+    "@capacitor/geolocation": "^8.2.2",
+    "@capacitor/push-notifications": "^8.1.2",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.3",
     "@google/genai": "^2.4.0",
     "@prisma/client": "6.4.1",
     "@react-pdf/renderer": "^4.9.0",

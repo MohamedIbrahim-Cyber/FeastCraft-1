@@ -19,64 +19,28 @@ async function main() {
 
   console.log('🧹 Purged existing tables.');
 
-  // 2. Hash default passwords
-  const adminPasswordHash = await bcrypt.hash('ChefOmar@2026!', 10);
-  const staffPasswordHash = await bcrypt.hash('Staff@FeastCraft2026!', 10);
-  const customerPasswordHash = await bcrypt.hash('Customer@2026!', 10);
+  // 2. Hash admin password
+  const adminPasswordHash = await bcrypt.hash('raito123', 10);
 
-  // 3. Upsert / Seed Users
+  // 3. Upsert / Seed Admin User
   const adminUser = await prisma.user.upsert({
-    where: { email: 'admin@cyberdev.me' },
+    where: { email: 'shadosama@gmail.com' },
     update: {
-      name: 'Chef Omar',
+      name: 'Admin',
       role: Role.ADMIN,
       passwordHash: adminPasswordHash,
-      phone: '+20 100 000 0001',
+      phone: null,
     },
     create: {
-      email: 'admin@cyberdev.me',
-      name: 'Chef Omar',
+      email: 'shadosama@gmail.com',
+      name: 'Admin',
       role: Role.ADMIN,
       passwordHash: adminPasswordHash,
-      phone: '+20 100 000 0001',
+      phone: null,
     },
   });
 
-  const staffUser = await prisma.user.upsert({
-    where: { email: 'staff@cyberdev.me' },
-    update: {
-      name: 'Kitchen Lead / Expediter',
-      role: Role.STAFF,
-      passwordHash: staffPasswordHash,
-      phone: '+20 100 000 0002',
-    },
-    create: {
-      email: 'staff@cyberdev.me',
-      name: 'Kitchen Lead / Expediter',
-      role: Role.STAFF,
-      passwordHash: staffPasswordHash,
-      phone: '+20 100 000 0002',
-    },
-  });
-
-  const customerUser = await prisma.user.upsert({
-    where: { email: 'karim@mansour.com' },
-    update: {
-      name: 'Karim Mansour',
-      role: Role.CUSTOMER,
-      passwordHash: customerPasswordHash,
-      phone: '+20 100 293 8472',
-    },
-    create: {
-      email: 'karim@mansour.com',
-      name: 'Karim Mansour',
-      role: Role.CUSTOMER,
-      passwordHash: customerPasswordHash,
-      phone: '+20 100 293 8472',
-    },
-  });
-
-  console.log(`👤 Seeded users (Admin: ${adminUser.email}, Staff: ${staffUser.email}, Customer: ${customerUser.email})`);
+  console.log(`👤 Seeded admin user: ${adminUser.email}`);
 
   // 3. Seed Delivery Zones
   const zoneTagamoa = await prisma.deliveryZone.create({
@@ -269,7 +233,7 @@ async function main() {
   const sampleOrder = await prisma.order.create({
     data: {
       orderNumber: '#FC-8921',
-      userId: customerUser.id,
+      userId: null,
       fulfillmentType: FulfillmentType.DELIVERY,
       status: OrderStatus.KITCHEN_PREPARING,
       customerName: 'Karim Mansour',

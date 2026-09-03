@@ -8,10 +8,15 @@ export type ScreenId =
   | 'menu-ordering'
   | 'checkout'
   | 'order-tracker'
+  | 'admin-login'
   | 'admin-kds'
   | 'admin-menu'
   | 'admin-menu-cms'
   | 'admin-analytics'
+  | 'admin-users'
+  | 'admin-reservations'
+  | 'admin-delivery'
+  | 'admin-cashier'
   | 'design-system';
 
 export type FulfillmentType = 'DELIVERY' | 'PICKUP';
@@ -29,7 +34,32 @@ export type OrderStatus =
 
 export type PaymentMethod = 'CASH_ON_DELIVERY' | 'PAYMOB_CARD' | 'INSTAPAY_WALLET';
 export type PaymentStatus = 'UNPAID' | 'PAID' | 'REFUNDED' | 'PENDING_COD';
-export type AdminRole = 'ADMIN' | 'STAFF' | 'KITCHEN';
+
+export type StaffRole =
+  | 'ADMIN'
+  | 'CASHIER'
+  | 'KITCHEN'
+  | 'DELIVERY'
+  | 'RESERVATION'
+  | 'STAFF';
+
+export type AdminRole = StaffRole;
+export type UserRole = 'CUSTOMER' | StaffRole;
+
+export interface TableReservation {
+  id: string;
+  reservationNumber: string; // e.g. #RES-101
+  customerName: string;
+  customerPhone: string;
+  partySize: number;
+  reservationDate: string; // YYYY-MM-DD
+  reservationTime: string; // HH:mm
+  seatingArea: 'INDOOR' | 'OUTDOOR_PATIO' | 'VIP_BOOTH' | 'RAMADAN_MAJLIS';
+  status: 'CONFIRMED' | 'SEATED' | 'COMPLETED' | 'CANCELLED';
+  specialNotes?: string;
+  assignedStaff?: string;
+  createdAt: string;
+}
 
 export interface Category {
   id: string;

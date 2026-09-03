@@ -16,6 +16,8 @@ import {
   AlertCircle,
   CheckCircle2,
   Lock,
+  Crosshair,
+  Loader2,
 } from 'lucide-react';
 import {
   CartItem,
@@ -26,6 +28,7 @@ import {
   PaymentMethod,
 } from '../../types';
 import { calculateOrderPricing } from '../../lib/mathEngine';
+import { getDeliveryCurrentLocation } from '../../lib/nativeBridge';
 
 interface CheckoutScreenProps {
   cartItems: CartItem[];
@@ -77,25 +80,59 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
 }) => {
   const safeZones = availableZones || [];
   // Form States
-  const [customerName, setCustomerName] = useState(customerInfo?.name || 'Karim Mansour');
-  const [customerPhone, setCustomerPhone] = useState(customerInfo?.phone || '+20 100 293 8472');
-  const [customerEmail, setCustomerEmail] = useState(customerInfo?.email || 'karim@mansour.com');
+  const [customerName, setCustomerName] = useState(customerInfo?.name || '');
+  const [customerPhone, setCustomerPhone] = useState(customerInfo?.phone || '');
+  const [customerEmail, setCustomerEmail] = useState(customerInfo?.email || '');
   const [currentZoneId, setCurrentZoneId] = useState(
     selectedZone?.id || (safeZones.length > 0 ? safeZones[0].id : '')
   );
   const [streetAddress, setStreetAddress] = useState(
-    addressDetails?.street || 'Villa 14, Street 18, 5th Settlement'
+    addressDetails?.street || ''
   );
-  const [building, setBuilding] = useState(addressDetails?.building || 'Villa 14');
-  const [floor, setFloor] = useState(addressDetails?.floor || 'Ground');
-  const [apartment, setApartment] = useState(addressDetails?.apartment || 'Private Entrance');
+  const [building, setBuilding] = useState(addressDetails?.building || '');
+  const [floor, setFloor] = useState(addressDetails?.floor || '');
+  const [apartment, setApartment] = useState(addressDetails?.apartment || '');
   const [deliveryNotes, setDeliveryNotes] = useState(
-    addressDetails?.deliveryNotes || 'Please ring doorbell twice upon arrival'
+    addressDetails?.deliveryNotes || ''
   );
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('CASH_ON_DELIVERY');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
+  const [locationSuccessMsg, setLocationSuccessMsg] = useState<string | null>(null);
+
+  // Native Geolocation Fast-Fill Handler
+  const handleFastFillLocation = async () => {
+    setIsLocating(true);
+    setLocationSuccessMsg(null);
+    try {
+      const coords = await getDeliveryCurrentLocation();
+      if (coords) {
+        const coordStr = `${coords.latitude.toFixed(5)}, ${coords.longitude.toFixed(5)}`;
+        setStreetAddress((prev) => {
+          if (!prev.trim()) {
+            return isArabic ? `إحداثيات GPS: ${coordStr}` : `GPS Coordinates: ${coordStr}`;
+          }
+          return `${prev} (GPS: ${coordStr})`;
+        });
+        setLocationSuccessMsg(
+          isArabic ? `تم تحديد موقعك بدقة (${coordStr})` : `Location detected (${coordStr})`
+        );
+        setTimeout(() => setLocationSuccessMsg(null), 4000);
+      } else {
+        setErrorMessage(
+          isArabic
+            ? 'تعذر تحديد الموقع الجغرافي. يرجى التأكد من تفعيل إذن الموقع GPS.'
+            : 'Could not detect location. Please ensure GPS permission is enabled.'
+        );
+      }
+    } catch {
+      // Ignored
+    } finally {
+      setIsLocating(false);
+    }
+  };
 
   // Active Zone
   const activeZone =
@@ -266,7 +303,7 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
                       required
                       value={customerName}
                       onChange={(e) => setCustomerName(e.target.value)}
-                      placeholder="Karim Mansour"
+                      placeholder={isArabic ? 'الاسم بالكامل' : 'Full Name'}
                       className={`w-full pl-9 pr-3.5 py-2.5 rounded-xl text-xs font-semibold border transition-colors focus:outline-none focus:border-lantern-red ${
                         isDark
                           ? 'bg-dark-surface border-dark-border text-evening-cream'
@@ -288,7 +325,7 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
                       required
                       value={customerPhone}
                       onChange={(e) => setCustomerPhone(e.target.value)}
-                      placeholder="+20 100 293 8472"
+                      placeholder="+20 100 000 0000"
                       className={`w-full pl-9 pr-3.5 py-2.5 rounded-xl text-xs font-semibold border transition-colors focus:outline-none focus:border-lantern-red font-mono ${
                         isDark
                           ? 'bg-dark-surface border-dark-border text-evening-cream'
@@ -308,7 +345,7 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
                       type="email"
                       value={customerEmail}
                       onChange={(e) => setCustomerEmail(e.target.value)}
-                      placeholder="karim@mansour.com"
+                      placeholder={isArabic ? 'name@example.com' : 'name@example.com'}
                       className={`w-full pl-9 pr-3.5 py-2.5 rounded-xl text-xs font-semibold border transition-colors focus:outline-none focus:border-lantern-red ${
                         isDark
                           ? 'bg-dark-surface border-dark-border text-evening-cream'
@@ -378,9 +415,39 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
 
                   {/* Street */}
                   <div>
-                    <label className="text-xs font-bold text-stone-gray block mb-1">
-                      {isArabic ? 'اسم الشارع والحي *' : 'Street Address & Neighborhood *'}
-                    </label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-bold text-stone-gray block">
+                        {isArabic ? 'اسم الشارع والحي *' : 'Street Address & Neighborhood *'}
+                      </label>
+                      <button
+                        type="button"
+                        onClick={handleFastFillLocation}
+                        disabled={isLocating}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-lantern-red/10 hover:bg-lantern-red/20 text-lantern-red transition-colors cursor-pointer active:scale-95 disabled:opacity-50"
+                        title="Fast-fill GPS coordinates using device location"
+                      >
+                        {isLocating ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Crosshair className="w-3.5 h-3.5" />
+                        )}
+                        <span>
+                          {isLocating
+                            ? isArabic
+                              ? 'جارٍ التحديد...'
+                              : 'Detecting GPS...'
+                            : isArabic
+                            ? 'حدد موقعي بالـ GPS'
+                            : 'Use GPS Location'}
+                        </span>
+                      </button>
+                    </div>
+                    {locationSuccessMsg && (
+                      <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 mb-1.5 flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" />
+                        <span>{locationSuccessMsg}</span>
+                      </p>
+                    )}
                     <div className="relative">
                       <MapPin className="w-4 h-4 text-stone-gray absolute top-3 left-3" />
                       <input
@@ -389,7 +456,7 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
                         required
                         value={streetAddress}
                         onChange={(e) => setStreetAddress(e.target.value)}
-                        placeholder="Villa 14, Street 18, 5th Settlement"
+                        placeholder={isArabic ? 'مثال: شارع التسعين، التجمع الخامس' : 'e.g. Street 18, Road 90, 5th Settlement'}
                         className={`w-full pl-9 pr-3.5 py-2.5 rounded-xl text-xs font-semibold border transition-colors focus:outline-none focus:border-lantern-red ${
                           isDark
                             ? 'bg-dark-surface border-dark-border text-evening-cream'
@@ -409,7 +476,7 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
                         type="text"
                         value={building}
                         onChange={(e) => setBuilding(e.target.value)}
-                        placeholder="Villa 14"
+                        placeholder={isArabic ? 'مبنى / فيلا' : 'Bldg / Villa'}
                         className={`w-full px-3 py-2.5 rounded-xl text-xs font-semibold border transition-colors focus:outline-none focus:border-lantern-red ${
                           isDark
                             ? 'bg-dark-surface border-dark-border text-evening-cream'
@@ -426,7 +493,7 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
                         type="text"
                         value={floor}
                         onChange={(e) => setFloor(e.target.value)}
-                        placeholder="Ground"
+                        placeholder={isArabic ? 'الدور' : 'Floor'}
                         className={`w-full px-3 py-2.5 rounded-xl text-xs font-semibold border transition-colors focus:outline-none focus:border-lantern-red ${
                           isDark
                             ? 'bg-dark-surface border-dark-border text-evening-cream'
@@ -443,7 +510,7 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
                         type="text"
                         value={apartment}
                         onChange={(e) => setApartment(e.target.value)}
-                        placeholder="Apt 2"
+                        placeholder={isArabic ? 'شقة' : 'Apt'}
                         className={`w-full px-3 py-2.5 rounded-xl text-xs font-semibold border transition-colors focus:outline-none focus:border-lantern-red ${
                           isDark
                             ? 'bg-dark-surface border-dark-border text-evening-cream'

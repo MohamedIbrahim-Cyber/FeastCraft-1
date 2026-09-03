@@ -38,7 +38,7 @@ export const CategoryStickyBar: React.FC<CategoryStickyBarProps> = ({
 
   return (
     <div
-      className={`sticky top-[69px] z-30 border-b backdrop-blur-md transition-colors ${
+      className={`sticky top-16 sm:top-20 z-30 border-b backdrop-blur-md transition-colors ${
         isDark
           ? 'bg-dark-surface/95 border-dark-border shadow-md'
           : 'bg-[#FCF7F3]/95 border-[#E8D4C5] shadow-sm'

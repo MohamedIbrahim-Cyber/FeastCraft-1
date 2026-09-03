@@ -6,6 +6,7 @@ import {
   TrendingUp,
   ShieldCheck,
   User,
+  Users,
   LogOut,
   Globe,
   Sun,
@@ -23,8 +24,8 @@ import { AdminRole, Locale, ThemeMode } from '../../types';
 import { HeaderMark } from '../HeaderMark';
 
 interface AdminSidebarProps {
-  currentTab: 'dashboard' | 'calendar' | 'prepsheet' | 'menu' | 'analytics' | 'security';
-  onChangeTab: (tab: 'dashboard' | 'calendar' | 'prepsheet' | 'menu' | 'analytics' | 'security') => void;
+  currentTab: 'dashboard' | 'calendar' | 'prepsheet' | 'menu' | 'analytics' | 'security' | 'users';
+  onChangeTab: (tab: 'dashboard' | 'calendar' | 'prepsheet' | 'menu' | 'analytics' | 'security' | 'users') => void;
   currentUser: { name: string; email: string; role: AdminRole };
   onChangeRole: (role: AdminRole) => void;
   onLogout: () => void;
@@ -52,7 +53,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
   onBackToCustomerSite,
 }) => {
   const navItems: {
-    id: 'dashboard' | 'calendar' | 'prepsheet' | 'menu' | 'analytics' | 'security';
+    id: 'dashboard' | 'calendar' | 'prepsheet' | 'menu' | 'analytics' | 'security' | 'users';
     labelEn: string;
     labelAr: string;
     icon: React.ReactNode;
@@ -89,6 +90,13 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
       labelEn: 'Revenue & Headcount Analytics',
       labelAr: 'التحليلات والإيرادات',
       icon: <TrendingUp className="w-4 h-4" />,
+    },
+    {
+      id: 'users',
+      labelEn: 'Staff & Admin Accounts',
+      labelAr: 'حسابات الموظفين والإدارة',
+      icon: <Users className="w-4 h-4 text-lantern-red" />,
+      badge: 'DB',
     },
     {
       id: 'security',
